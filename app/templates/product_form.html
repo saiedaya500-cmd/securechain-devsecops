@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}{{ "Modifier" if product else "Ajouter" }} · SecureShop{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <a class="text-decoration-none" href="/">← Retour au catalogue</a>
+    <div class="card border-0 shadow-sm mt-3">
+      <div class="card-body p-4 p-md-5">
+        <p class="eyebrow mb-1">PRODUIT</p>
+        <h1 class="h2 mb-4">{{ "Modifier le produit" if product else "Ajouter un produit" }}</h1>
+        <form method="post" action="{{ action }}" class="row g-3">
+          <div class="col-12">
+            <label class="form-label" for="name">Nom</label>
+            <input class="form-control" id="name" name="name" required minlength="2" maxlength="100" value="{{ product.name if product else '' }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="description">Description</label>
+            <textarea class="form-control" id="description" name="description" maxlength="500" rows="3">{{ product.description if product else '' }}</textarea>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="price">Prix (€)</label>
+            <input class="form-control" id="price" name="price" type="number" min="0.01" step="0.01" required value="{{ product.price if product else '' }}">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label" for="quantity">Quantité</label>
+            <input class="form-control" id="quantity" name="quantity" type="number" min="0" required value="{{ product.quantity if product else 0 }}">
+          </div>
+          <div class="col-12">
+            <label class="form-label" for="category">Catégorie</label>
+            <input class="form-control" id="category" name="category" required minlength="2" maxlength="80" value="{{ product.category if product else '' }}">
+          </div>
+          <div class="col-12 mt-4">
+            <button class="btn btn-primary px-4" type="submit">Enregistrer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

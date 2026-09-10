@@ -1,0 +1,9 @@
+:root { --navy: #101828; --blue: #155eef; --surface: #f5f7fb; }
+body { background: var(--surface); color: var(--navy); min-height: 100vh; }
+.navbar { background: linear-gradient(100deg, #101828, #1849a9); }
+.eyebrow { color: var(--blue); font-size: .78rem; font-weight: 800; letter-spacing: .12em; }
+.product-card { transition: transform .2s ease, box-shadow .2s ease; border-radius: 1rem; }
+.product-card:hover { transform: translateY(-4px); box-shadow: 0 1rem 2rem rgba(16, 24, 40, .10) !important; }
+.price { color: var(--blue); font-size: 1.25rem; }
+.empty-state { background: #fff; border: 1px dashed #b2ccff; }
+.btn, .form-control, .card { border-radius: .75rem; }

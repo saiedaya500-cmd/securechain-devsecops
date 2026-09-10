@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run SecureShop",
+            "type": "debugpy",
+            "request": "launch",
+            "python": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--reload"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal",
+            "jinja": true
+        }
+    ]
+}
