@@ -1,24 +1,33 @@
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
 
 
-client = TestClient(app)
+@pytest.fixture
+def client():
+    with TestClient(app) as test_client:
+        yield test_client
 
 
-def test_health_endpoint():
+def test_health_endpoint(client):
     response = client.get("/health")
+
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "secureshop"}
+    assert response.json() == {
+        "status": "ok",
+        "service": "secureshop"
+    }
 
 
-def test_home_page_loads():
+def test_home_page_loads(client):
     response = client.get("/")
+
     assert response.status_code == 200
     assert "SecureShop" in response.text
 
 
-def test_create_product_redirects():
+def test_create_product_redirects(client):
     response = client.post(
         "/products",
         data={
@@ -30,5 +39,6 @@ def test_create_product_redirects():
         },
         follow_redirects=False,
     )
+
     assert response.status_code == 303
     assert response.headers["location"] == "/"
