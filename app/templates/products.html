@@ -1,49 +1,123 @@
 {% extends "base.html" %}
-{% block title %}Produits · SecureShop{% endblock %}
+
+{% block title %}
+Produits · SecureShop
+{% endblock %}
+
 {% block content %}
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
     <p class="eyebrow mb-1">CATALOGUE SÉCURISÉ</p>
-    <h1 class="display-6 fw-bold mb-0">Gestion des produits</h1>
+    <h1 class="display-6 fw-bold mb-0">
+      Gestion des produits
+    </h1>
   </div>
-  <a class="btn btn-primary px-4" href="/products/new">Ajouter un produit</a>
+
+  <a class="btn btn-primary px-4" href="/products/new">
+    Ajouter un produit
+  </a>
 </div>
 
-<form class="card card-body border-0 shadow-sm mb-4" method="get" action="/">
+<form
+  class="card card-body border-0 shadow-sm mb-4"
+  method="get"
+  action="/"
+>
   <div class="input-group">
-    <input class="form-control" name="q" maxlength="100" value="{{ query }}" placeholder="Rechercher par nom">
-    <button class="btn btn-dark" type="submit">Rechercher</button>
+    <input
+      class="form-control"
+      name="q"
+      maxlength="100"
+      value="{{ query }}"
+      placeholder="Rechercher par nom"
+    >
+
+    <button class="btn btn-dark" type="submit">
+      Rechercher
+    </button>
   </div>
 </form>
 
 <div class="row g-4">
+
   {% for product in products %}
+
   <div class="col-md-6 col-xl-4">
     <article class="card product-card h-100 border-0 shadow-sm">
+
       <div class="card-body p-4">
-        <span class="badge text-bg-light mb-3">{{ product.category }}</span>
-        <h2 class="h4">{{ product.name }}</h2>
-        <p class="text-secondary">{{ product.description or "Aucune description" }}</p>
+        <span class="badge text-bg-light mb-3">
+          {{ product.category }}
+        </span>
+
+        <h2 class="h4">
+          {{ product.name }}
+        </h2>
+
+        <p class="text-secondary">
+          {{ product.description or "Aucune description" }}
+        </p>
+
         <div class="d-flex justify-content-between align-items-center mt-4">
-          <strong class="price">{{ "%.2f"|format(product.price) }} €</strong>
-          <span class="small text-secondary">Stock : {{ product.quantity }}</span>
+          <strong class="price">
+            {{ "%.2f"|format(product.price) }} €
+          </strong>
+
+          <span class="small text-secondary">
+            Stock : {{ product.quantity }}
+          </span>
         </div>
       </div>
+
       <div class="card-footer bg-white border-0 px-4 pb-4 d-flex gap-2">
-        <a class="btn btn-outline-primary btn-sm" href="/products/{{ product.id }}/edit">Modifier</a>
-        <form method="post" action="/products/{{ product.id }}/delete">
-          <button class="btn btn-outline-danger btn-sm" type="submit">Supprimer</button>
+
+        <a
+          class="btn btn-outline-primary btn-sm"
+          href="/products/{{ product.id }}/edit"
+        >
+          Modifier
+        </a>
+
+        <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
+        <form
+          method="post"
+          action="/products/{{ product.id }}/delete"
+        >
+          <input
+            type="hidden"
+            name="csrf_token"
+            value="{{ csrf_token }}"
+          >
+
+          <button
+            class="btn btn-outline-danger btn-sm"
+            type="submit"
+          >
+            Supprimer
+          </button>
         </form>
+
       </div>
     </article>
   </div>
+
   {% else %}
+
   <div class="col-12">
     <div class="empty-state text-center p-5 rounded-4">
-      <h2 class="h4">Aucun produit</h2>
-      <p class="text-secondary mb-0">Ajoute ton premier produit pour tester l'application.</p>
+      <h2 class="h4">
+        Aucun produit
+      </h2>
+
+      <p class="text-secondary mb-0">
+        Ajoute ton premier produit pour tester l'application.
+      </p>
     </div>
   </div>
+
   {% endfor %}
+
 </div>
+
 {% endblock %}
