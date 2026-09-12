@@ -1,0 +1,24 @@
+name: Semgrep Security Scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  semgrep:
+    runs-on: ubuntu-latest
+
+    container:
+      image: semgrep/semgrep
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Analyze source code
+        run: semgrep scan --config auto --error
