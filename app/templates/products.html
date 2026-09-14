@@ -8,13 +8,19 @@ Produits · SecureShop
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
   <div>
-    <p class="eyebrow mb-1">CATALOGUE SÉCURISÉ</p>
+    <p class="eyebrow mb-1">
+      CATALOGUE SÉCURISÉ
+    </p>
+
     <h1 class="display-6 fw-bold mb-0">
       Gestion des produits
     </h1>
   </div>
 
-  <a class="btn btn-primary px-4" href="/products/new">
+  <a
+    class="btn btn-primary px-4"
+    href="/products/new"
+  >
     Ajouter un produit
   </a>
 </div>
@@ -25,6 +31,7 @@ Produits · SecureShop
   action="/"
 >
   <div class="input-group">
+
     <input
       class="form-control"
       name="q"
@@ -33,9 +40,13 @@ Produits · SecureShop
       placeholder="Rechercher par nom"
     >
 
-    <button class="btn btn-dark" type="submit">
+    <button
+      class="btn btn-dark"
+      type="submit"
+    >
       Rechercher
     </button>
+
   </div>
 </form>
 
@@ -47,6 +58,7 @@ Produits · SecureShop
     <article class="card product-card h-100 border-0 shadow-sm">
 
       <div class="card-body p-4">
+
         <span class="badge text-bg-light mb-3">
           {{ product.category }}
         </span>
@@ -60,6 +72,7 @@ Produits · SecureShop
         </p>
 
         <div class="d-flex justify-content-between align-items-center mt-4">
+
           <strong class="price">
             {{ "%.2f"|format(product.price) }} €
           </strong>
@@ -67,6 +80,7 @@ Produits · SecureShop
           <span class="small text-secondary">
             Stock : {{ product.quantity }}
           </span>
+
         </div>
       </div>
 
@@ -106,6 +120,7 @@ Produits · SecureShop
 
   <div class="col-12">
     <div class="empty-state text-center p-5 rounded-4">
+
       <h2 class="h4">
         Aucun produit
       </h2>
@@ -113,6 +128,7 @@ Produits · SecureShop
       <p class="text-secondary mb-0">
         Ajoute ton premier produit pour tester l'application.
       </p>
+
     </div>
   </div>
 
