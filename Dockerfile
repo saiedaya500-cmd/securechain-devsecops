@@ -3,18 +3,30 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
+# Installer les correctifs de sécurité Debian
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+
+# Installer les dépendances puis supprimer les outils inutiles au runtime
+RUN python -m pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" \
+    && python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip uninstall -y setuptools pip
 
 COPY app ./app
 
 RUN useradd --create-home --uid 10001 appuser \
     && chown -R appuser:appuser /app
+
 USER appuser
 
 EXPOSE 8000
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 
