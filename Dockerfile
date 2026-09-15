@@ -13,8 +13,10 @@ WORKDIR /app
 
 COPY requirements.txt .
 
-RUN pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" \
-    && pip install --no-cache-dir -r requirements.txt
+# Installer les dépendances puis supprimer les outils inutiles au runtime
+RUN python -m pip install --no-cache-dir --upgrade pip "setuptools>=78.1.1" \
+    && python -m pip install --no-cache-dir -r requirements.txt \
+    && python -m pip uninstall -y setuptools pip
 
 COPY app ./app
 
