@@ -1,0 +1,32 @@
+name: Generate SBOM
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    name: Generate Docker image SBOM
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+
+      - name: Build Docker image
+        run: docker build -t secureshop:${{ github.sha }} .
+
+      - name: Generate SBOM with Syft
+        uses: anchore/sbom-action@v0
+        with:
+          image: secureshop:${{ github.sha }}
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+          artifact-name: secureshop-sbom-${{ github.sha }}
+          upload-artifact: true
+          upload-release-assets: false
+          dependency-snapshot: false
