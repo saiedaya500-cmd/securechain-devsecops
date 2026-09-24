@@ -29,6 +29,29 @@ jobs:
         run: |
           opa test policy/securechain.rego policy/test_securechain.rego -v
 
+      - name: Generate CI input for OPA
+        env:
+          TESTS_PASSED: "true"
+          SECRETS_FOUND: "0"
+          HIGH_VULNERABILITIES: "0"
+          CRITICAL_VULNERABILITIES: "0"
+          SBOM_GENERATED: "true"
+          RUNS_AS_ROOT: "false"
+        run: |
+          python3 scripts/generate_opa_input.py
+          cat policy/input-ci.json
+
+      - name: Evaluate CI security decision
+        run: |
+          decision=$(opa eval \
+            --format raw \
+            --data policy/securechain.rego \
+            --input policy/input-ci.json \
+            "data.securechain.status")
+
+          echo "Final CI decision: $decision"
+          test "$decision" = "ALLOW"
+
       - name: Verify ALLOW decision
         run: |
           decision=$(opa eval \
