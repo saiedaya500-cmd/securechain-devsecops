@@ -1,0 +1,52 @@
+name: OPA Security Policy
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  opa-policy:
+    name: Test OPA policies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Install OPA
+        run: |
+          curl -L -O https://github.com/open-policy-agent/opa/releases/download/v1.21.0/opa_linux_amd64_static
+          curl -L -O https://github.com/open-policy-agent/opa/releases/download/v1.21.0/opa_linux_amd64_static.sha256
+          sha256sum -c opa_linux_amd64_static.sha256
+          sudo install -m 0755 opa_linux_amd64_static /usr/local/bin/opa
+          opa version
+
+      - name: Test OPA policies
+        run: |
+          opa test policy/securechain.rego policy/test_securechain.rego -v
+
+      - name: Verify ALLOW decision
+        run: |
+          decision=$(opa eval \
+            --format raw \
+            --data policy/securechain.rego \
+            --input policy/input-safe.json \
+            "data.securechain.status")
+
+          echo "Safe input decision: $decision"
+          test "$decision" = "ALLOW"
+
+      - name: Verify BLOCK decision
+        run: |
+          decision=$(opa eval \
+            --format raw \
+            --data policy/securechain.rego \
+            --input policy/input-dangerous.json \
+            "data.securechain.status")
+
+          echo "Dangerous input decision: $decision"
+          test "$decision" = "BLOCK"

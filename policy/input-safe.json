@@ -1,0 +1,8 @@
+{
+  "tests_passed": true,
+  "secrets_found": 0,
+  "high_vulnerabilities": 0,
+  "critical_vulnerabilities": 0,
+  "sbom_generated": true,
+  "runs_as_root": false
+}
