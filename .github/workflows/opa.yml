@@ -17,6 +17,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install Python dependencies
+        run: pip install -r requirements-dev.txt
+
       - name: Install OPA
         run: |
           curl -L -O https://github.com/open-policy-agent/opa/releases/download/v1.21.0/opa_linux_amd64_static
@@ -29,9 +38,14 @@ jobs:
         run: |
           opa test policy/securechain.rego policy/test_securechain.rego -v
 
+      - name: Run application tests
+        id: pytest
+        continue-on-error: true
+        run: python -m pytest -q
+
       - name: Generate CI input for OPA
         env:
-          TESTS_PASSED: "true"
+          TESTS_PASSED: ${{ steps.pytest.outcome == 'success' }}
           SECRETS_FOUND: "0"
           HIGH_VULNERABILITIES: "0"
           CRITICAL_VULNERABILITIES: "0"
