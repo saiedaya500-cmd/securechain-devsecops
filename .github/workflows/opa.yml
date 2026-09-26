@@ -79,6 +79,25 @@ jobs:
             echo "generated=false" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Check Docker runtime user
+        id: docker-user
+        run: |
+          container_user=$(docker inspect \
+            --format='{{.Config.User}}' \
+            secureshop:${{ github.sha }})
+
+          echo "Configured Docker user: ${container_user:-root}"
+
+          if [ -z "$container_user" ] || \
+             [ "$container_user" = "root" ] || \
+             [ "$container_user" = "0" ]; then
+            echo "Container runs as root"
+            echo "runs_as_root=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Container runs as non-root user: $container_user"
+            echo "runs_as_root=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Scan project dependencies with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -145,7 +164,7 @@ jobs:
           HIGH_VULNERABILITIES: ${{ steps.trivy-count.outputs.high }}
           CRITICAL_VULNERABILITIES: ${{ steps.trivy-count.outputs.critical }}
           SBOM_GENERATED: ${{ steps.sbom-check.outputs.generated }}
-          RUNS_AS_ROOT: "false"
+          RUNS_AS_ROOT: ${{ steps.docker-user.outputs.runs_as_root }}
         run: |
           python3 scripts/generate_opa_input.py
           cat policy/input-ci.json
