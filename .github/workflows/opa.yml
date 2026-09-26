@@ -56,6 +56,29 @@ jobs:
       - name: Build Docker image
         run: docker build -t secureshop:${{ github.sha }} .
 
+      - name: Generate SBOM with Syft
+        id: sbom
+        continue-on-error: true
+        uses: anchore/sbom-action@3ad7283483fc7af8ff2b4ea19663c2d5ca935e26 # v0.24.2
+        with:
+          image: secureshop:${{ github.sha }}
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+          upload-artifact: false
+          upload-release-assets: false
+          dependency-snapshot: false
+
+      - name: Check SBOM generation
+        id: sbom-check
+        run: |
+          if [ -s sbom.cyclonedx.json ]; then
+            echo "SBOM generated successfully"
+            echo "generated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "SBOM generation failed"
+            echo "generated=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Scan project dependencies with Trivy
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -121,7 +144,7 @@ jobs:
           SECRETS_FOUND: ${{ steps.gitleaks.outcome == 'success' && '0' || '1' }}
           HIGH_VULNERABILITIES: ${{ steps.trivy-count.outputs.high }}
           CRITICAL_VULNERABILITIES: ${{ steps.trivy-count.outputs.critical }}
-          SBOM_GENERATED: "true"
+          SBOM_GENERATED: ${{ steps.sbom-check.outputs.generated }}
           RUNS_AS_ROOT: "false"
         run: |
           python3 scripts/generate_opa_input.py
