@@ -18,22 +18,29 @@
           Security Dashboard
         </h1>
 
-        <p class="lead mb-0">
-          Vue centralisée des contrôles de sécurité appliqués
-          à l'application SecureShop.
+        <p class="lead mb-2">
+          Résultats réels des workflows GitHub Actions.
+        </p>
+
+        <p class="small text-light-emphasis mb-0">
+          Dernière actualisation : {{ generated_at }}
         </p>
       </div>
 
       <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-        <p class="mb-2">Décision finale OPA</p>
+        <p class="mb-2">Décision OPA</p>
 
         {% if decision == "ALLOW" %}
           <span class="badge rounded-pill bg-success fs-4 px-4 py-3">
             ✓ ALLOW
           </span>
-        {% else %}
+        {% elif decision == "BLOCK" %}
           <span class="badge rounded-pill bg-danger fs-4 px-4 py-3">
             ✕ BLOCK
+          </span>
+        {% else %}
+          <span class="badge rounded-pill bg-warning text-dark fs-4 px-4 py-3">
+            ? UNKNOWN
           </span>
         {% endif %}
       </div>
@@ -41,49 +48,71 @@
   </div>
 </section>
 
-<section class="mb-4">
+<section class="mb-5">
   <div class="row g-4">
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body p-4">
-          <p class="text-secondary mb-2">Contrôles de sécurité</p>
-          <p class="display-6 fw-bold mb-0">{{ checks | length }}</p>
+          <p class="text-secondary mb-2">Contrôles</p>
+          <p class="display-6 fw-bold mb-0">
+            {{ checks | length }}
+          </p>
         </div>
       </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body p-4">
-          <p class="text-secondary mb-2">Vulnérabilités critiques</p>
-          <p class="display-6 fw-bold text-success mb-0">0</p>
+          <p class="text-secondary mb-2">Réussis</p>
+          <p class="display-6 fw-bold text-success mb-0">
+            {{ passed }}
+          </p>
         </div>
       </div>
     </div>
 
-    <div class="col-md-4">
+    <div class="col-md-3">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body p-4">
-          <p class="text-secondary mb-2">Secrets détectés</p>
-          <p class="display-6 fw-bold text-success mb-0">0</p>
+          <p class="text-secondary mb-2">Échoués</p>
+          <p class="display-6 fw-bold text-danger mb-0">
+            {{ failed }}
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <p class="text-secondary mb-2">En attente</p>
+          <p class="display-6 fw-bold text-warning mb-0">
+            {{ pending }}
+          </p>
         </div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="mt-5">
+<section>
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fw-bold mb-1">Security Gates</h2>
+      <h2 class="fw-bold mb-1">GitHub Security Workflows</h2>
       <p class="text-secondary mb-0">
-        Contrôles exécutés avant l'autorisation du pipeline.
+        Dernière exécution sur la branche main.
       </p>
     </div>
 
-    <span class="badge bg-success-subtle text-success px-3 py-2">
-      Pipeline sécurisé
-    </span>
+    <a
+      class="btn btn-outline-primary"
+      href="https://github.com/saiedaya500-cmd/securechain-devsecops/actions"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Ouvrir GitHub Actions
+    </a>
   </div>
 
   <div class="row g-4">
@@ -108,16 +137,41 @@
                 <span class="badge rounded-pill bg-success px-3 py-2">
                   ✓ PASS
                 </span>
-              {% else %}
+              {% elif check.status == "FAIL" %}
                 <span class="badge rounded-pill bg-danger px-3 py-2">
                   ✕ FAIL
+                </span>
+              {% elif check.status == "RUNNING" %}
+                <span class="badge rounded-pill bg-warning text-dark px-3 py-2">
+                  … RUNNING
+                </span>
+              {% else %}
+                <span class="badge rounded-pill bg-secondary px-3 py-2">
+                  ? UNKNOWN
                 </span>
               {% endif %}
             </div>
 
-            <p class="text-secondary mb-0 mt-3">
+            <p class="text-secondary mt-3">
               {{ check.description }}
             </p>
+
+            {% if check.message %}
+              <p class="small text-warning">
+                {{ check.message }}
+              </p>
+            {% endif %}
+
+            {% if check.url %}
+              <a
+                class="btn btn-sm btn-outline-secondary"
+                href="{{ check.url }}"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Voir l'exécution
+              </a>
+            {% endif %}
           </div>
         </article>
       </div>
@@ -125,37 +179,7 @@
   </div>
 </section>
 
-<section class="mt-5">
-  <div class="card border-0 shadow-sm">
-    <div class="card-body p-4">
-      <h2 class="h4 fw-bold mb-4">Chaîne de décision DevSecOps</h2>
-
-      <div class="d-flex flex-wrap align-items-center gap-2">
-        <span class="badge bg-primary px-3 py-2">Pytest</span>
-        <span>→</span>
-
-        <span class="badge bg-primary px-3 py-2">Semgrep</span>
-        <span>→</span>
-
-        <span class="badge bg-primary px-3 py-2">Gitleaks</span>
-        <span>→</span>
-
-        <span class="badge bg-primary px-3 py-2">Trivy</span>
-        <span>→</span>
-
-        <span class="badge bg-primary px-3 py-2">Syft SBOM</span>
-        <span>→</span>
-
-        <span class="badge bg-primary px-3 py-2">Docker</span>
-        <span>→</span>
-
-        <span class="badge bg-success px-3 py-2">OPA Decision</span>
-      </div>
-    </div>
-  </div>
-</section>
-
-<div class="mt-4">
+<div class="mt-5">
   <a class="btn btn-outline-secondary" href="/">
     ← Retour à SecureShop
   </a>
