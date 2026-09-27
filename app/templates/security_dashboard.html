@@ -2,186 +2,273 @@
 
 {% block title %}Security Dashboard | SecureShop{% endblock %}
 
+{% block extra_head %}
+<link
+  href="{{ url_for('static', path='/security_dashboard.css') }}"
+  rel="stylesheet"
+>
+{% endblock %}
+
 {% block content %}
-<section class="mb-5">
-  <div
-    class="p-4 p-md-5 rounded-4 text-white shadow"
-    style="background: linear-gradient(135deg, #071426, #123b5d);"
-  >
-    <div class="row align-items-center">
-      <div class="col-lg-8">
-        <p class="text-uppercase small fw-bold text-info mb-2">
-          SecureChain DevSecOps
-        </p>
+<section class="security-dashboard">
 
-        <h1 class="display-5 fw-bold">
-          Security Dashboard
-        </h1>
-
-        <p class="lead mb-2">
-          Résultats réels des workflows GitHub Actions.
-        </p>
-
-        <p class="small text-light-emphasis mb-0">
-          Dernière actualisation : {{ generated_at }}
-        </p>
+  <!-- Hero -->
+  <header class="security-hero">
+    <div class="hero-content">
+      <div class="live-label">
+        <span class="live-dot"></span>
+        LIVE SECURITY DATA
       </div>
 
-      <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
-        <p class="mb-2">Décision OPA</p>
+      <h1>Security Dashboard</h1>
 
-        {% if decision == "ALLOW" %}
-          <span class="badge rounded-pill bg-success fs-4 px-4 py-3">
-            ✓ ALLOW
-          </span>
-        {% elif decision == "BLOCK" %}
-          <span class="badge rounded-pill bg-danger fs-4 px-4 py-3">
-            ✕ BLOCK
-          </span>
-        {% else %}
-          <span class="badge rounded-pill bg-warning text-dark fs-4 px-4 py-3">
-            ? UNKNOWN
-          </span>
-        {% endif %}
+      <p class="hero-description">
+        Supervision en temps réel de la chaîne DevSecOps SecureShop.
+      </p>
+
+      <div class="hero-metadata">
+        <span class="metadata-badge">
+          Repository : securechain-devsecops
+        </span>
+
+        <span class="metadata-badge">
+          Branch : main
+        </span>
+
+        <span class="metadata-badge">
+          GitHub Actions
+        </span>
       </div>
-    </div>
-  </div>
-</section>
 
-<section class="mb-5">
-  <div class="row g-4">
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body p-4">
-          <p class="text-secondary mb-2">Contrôles</p>
-          <p class="display-6 fw-bold mb-0">
-            {{ checks | length }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body p-4">
-          <p class="text-secondary mb-2">Réussis</p>
-          <p class="display-6 fw-bold text-success mb-0">
-            {{ passed }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body p-4">
-          <p class="text-secondary mb-2">Échoués</p>
-          <p class="display-6 fw-bold text-danger mb-0">
-            {{ failed }}
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <div class="col-md-3">
-      <div class="card border-0 shadow-sm h-100">
-        <div class="card-body p-4">
-          <p class="text-secondary mb-2">En attente</p>
-          <p class="display-6 fw-bold text-warning mb-0">
-            {{ pending }}
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="fw-bold mb-1">GitHub Security Workflows</h2>
-      <p class="text-secondary mb-0">
-        Dernière exécution sur la branche main.
+      <p class="last-update">
+        Dernière actualisation :
+        <strong>{{ generated_at }}</strong>
       </p>
     </div>
 
-    <a
-      class="btn btn-outline-primary"
-      href="https://github.com/saiedaya500-cmd/securechain-devsecops/actions"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      Ouvrir GitHub Actions
-    </a>
+    <div class="decision-panel decision-{{ decision|lower }}">
+      <span class="decision-label">Décision de sécurité OPA</span>
+
+      <div class="decision-value">
+        {% if decision == "ALLOW" %}
+          <span class="decision-icon">✓</span>
+        {% elif decision == "BLOCK" %}
+          <span class="decision-icon">×</span>
+        {% else %}
+          <span class="decision-icon">!</span>
+        {% endif %}
+
+        {{ decision }}
+      </div>
+
+      <p>
+        {% if decision == "ALLOW" %}
+          Tous les contrôles requis sont validés.
+        {% elif decision == "BLOCK" %}
+          Une ou plusieurs règles de sécurité ont échoué.
+        {% else %}
+          La décision de sécurité n’est pas disponible.
+        {% endif %}
+      </p>
+    </div>
+  </header>
+
+  <!-- Actions -->
+  <div class="dashboard-toolbar">
+    <div>
+      <p class="section-eyebrow">SECURITY OVERVIEW</p>
+      <h2>État global de la pipeline</h2>
+    </div>
+
+    <div class="toolbar-actions">
+      <button
+        class="dashboard-button dashboard-button-secondary"
+        type="button"
+        onclick="window.location.reload()"
+      >
+        ↻ Actualiser
+      </button>
+
+      <a
+        class="dashboard-button dashboard-button-primary"
+        href="https://github.com/saiedaya500-cmd/securechain-devsecops/actions"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Ouvrir GitHub Actions
+        <span aria-hidden="true">↗</span>
+      </a>
+    </div>
   </div>
 
-  <div class="row g-4">
-    {% for check in checks %}
-      <div class="col-md-6">
-        <article class="card border-0 shadow-sm h-100">
-          <div class="card-body p-4">
-            <div
-              class="d-flex justify-content-between align-items-start gap-3"
-            >
-              <div>
-                <p class="text-uppercase small fw-bold text-primary mb-2">
-                  {{ check.tool }}
-                </p>
+  <!-- Metrics -->
+  <section class="metric-grid" aria-label="Résumé des contrôles">
+    <article class="metric-card metric-total">
+      <div class="metric-icon">SC</div>
 
-                <h3 class="h5 fw-bold">
-                  {{ check.name }}
-                </h3>
-              </div>
+      <div>
+        <span class="metric-label">Contrôles</span>
+        <strong class="metric-value">{{ checks|length }}</strong>
+        <span class="metric-caption">Workflows surveillés</span>
+      </div>
+    </article>
 
-              {% if check.status == "PASS" %}
-                <span class="badge rounded-pill bg-success px-3 py-2">
-                  ✓ PASS
-                </span>
-              {% elif check.status == "FAIL" %}
-                <span class="badge rounded-pill bg-danger px-3 py-2">
-                  ✕ FAIL
-                </span>
-              {% elif check.status == "RUNNING" %}
-                <span class="badge rounded-pill bg-warning text-dark px-3 py-2">
-                  … RUNNING
-                </span>
+    <article class="metric-card metric-success">
+      <div class="metric-icon">✓</div>
+
+      <div>
+        <span class="metric-label">Réussis</span>
+        <strong class="metric-value">{{ passed }}</strong>
+        <span class="metric-caption">Contrôles validés</span>
+      </div>
+    </article>
+
+    <article class="metric-card metric-failure">
+      <div class="metric-icon">×</div>
+
+      <div>
+        <span class="metric-label">Échoués</span>
+        <strong class="metric-value">{{ failed }}</strong>
+        <span class="metric-caption">Action nécessaire</span>
+      </div>
+    </article>
+
+    <article class="metric-card metric-pending">
+      <div class="metric-icon">…</div>
+
+      <div>
+        <span class="metric-label">En attente</span>
+        <strong class="metric-value">{{ pending }}</strong>
+        <span class="metric-caption">En cours ou indisponibles</span>
+      </div>
+    </article>
+  </section>
+
+  <!-- Workflows -->
+  <section class="workflow-section">
+    <div class="section-heading">
+      <div>
+        <p class="section-eyebrow">PIPELINE CONTROLS</p>
+        <h2>GitHub Security Workflows</h2>
+        <p>Dernière exécution détectée sur la branche principale.</p>
+      </div>
+
+      <span class="workflow-count">
+        {{ checks|length }} contrôles
+      </span>
+    </div>
+
+    <div class="workflow-grid">
+      {% for check in checks %}
+      <article class="workflow-card workflow-{{ check.status|lower }}">
+        <div class="workflow-card-header">
+          <div class="workflow-identity">
+            <div class="workflow-logo">
+              {% if check.file == "ci.yml" %}
+                CI
+              {% elif check.file == "semgrep.yml" %}
+                SG
+              {% elif check.file == "gitleaks.yml" %}
+                GL
+              {% elif check.file == "trivy.yml" %}
+                TR
+              {% elif check.file == "sbom.yml" %}
+                SB
+              {% elif check.file == "opa.yml" %}
+                OP
               {% else %}
-                <span class="badge rounded-pill bg-secondary px-3 py-2">
-                  ? UNKNOWN
-                </span>
+                SC
               {% endif %}
             </div>
 
-            <p class="text-secondary mt-3">
-              {{ check.description }}
-            </p>
+            <div>
+              <span class="workflow-tool">{{ check.tool }}</span>
+              <h3>{{ check.name }}</h3>
+            </div>
+          </div>
 
-            {% if check.message %}
-              <p class="small text-warning">
-                {{ check.message }}
-              </p>
-            {% endif %}
+          <span class="status-pill status-{{ check.status|lower }}">
+            <span class="status-dot"></span>
+            {{ check.status }}
+          </span>
+        </div>
 
-            {% if check.url %}
-              <a
-                class="btn btn-sm btn-outline-secondary"
-                href="{{ check.url }}"
-                target="_blank"
-                rel="noopener noreferrer"
+        <p class="workflow-description">
+          {{ check.description }}
+        </p>
+
+        {% if check.message %}
+        <div class="workflow-message">
+          {{ check.message }}
+        </div>
+        {% endif %}
+
+        <footer class="workflow-footer">
+          <div class="workflow-time">
+            {% if check.updated_at %}
+              Dernière exécution :
+              <time
+                datetime="{{ check.updated_at }}"
+                data-local-time
               >
-                Voir l'exécution
-              </a>
+                {{ check.updated_at }}
+              </time>
+            {% else %}
+              Date indisponible
             {% endif %}
           </div>
-        </article>
-      </div>
-    {% endfor %}
-  </div>
+
+          {% if check.url %}
+          <a
+            href="{{ check.url }}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="workflow-link"
+          >
+            Voir le résultat
+            <span aria-hidden="true">↗</span>
+          </a>
+          {% endif %}
+        </footer>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- Architecture summary -->
+  <section class="architecture-banner">
+    <div class="architecture-icon">🛡</div>
+
+    <div>
+      <strong>Security gate automatisée</strong>
+      <p>
+        Pytest, Semgrep, Gitleaks, Trivy, Syft et OPA protègent
+        chaque modification avant son intégration.
+      </p>
+    </div>
+
+    <span class="architecture-status">
+      Pipeline opérationnelle
+    </span>
+  </section>
+
+  <footer class="dashboard-footer">
+    <span>SecureChain DevSecOps Platform</span>
+    <span>Données fournies par l’API GitHub Actions</span>
+  </footer>
 </section>
 
-<div class="mt-5">
-  <a class="btn btn-outline-secondary" href="/">
-    ← Retour à SecureShop
-  </a>
-</div>
+<script>
+  document.querySelectorAll("[data-local-time]").forEach((element) => {
+    const value = element.getAttribute("datetime");
+    const date = new Date(value);
+
+    if (!Number.isNaN(date.getTime())) {
+      element.textContent = new Intl.DateTimeFormat("fr-FR", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(date);
+    }
+  });
+</script>
 {% endblock %}
