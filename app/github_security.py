@@ -1,11 +1,10 @@
-import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from threading import Lock
-from urllib.error import HTTPError, URLError
-from urllib.request import Request, urlopen
+
+import httpx
 
 
 GITHUB_OWNER = "saiedaya500-cmd"
@@ -19,41 +18,65 @@ WORKFLOWS = [
         "name": "Application Tests",
         "tool": "Pytest / CI",
         "file": "ci.yml",
-        "description": "Tests fonctionnels et construction de l'image Docker.",
+        "description": (
+            "Tests fonctionnels et construction "
+            "de l'image Docker."
+        ),
     },
     {
         "name": "Static Code Analysis",
         "tool": "Semgrep",
         "file": "semgrep.yml",
-        "description": "Analyse statique du code et détection des erreurs de sécurité.",
+        "description": (
+            "Analyse statique du code et détection "
+            "des erreurs de sécurité."
+        ),
     },
     {
         "name": "Secret Detection",
         "tool": "Gitleaks",
         "file": "gitleaks.yml",
-        "description": "Recherche de secrets exposés dans le dépôt Git.",
+        "description": (
+            "Recherche de secrets exposés "
+            "dans le dépôt Git."
+        ),
     },
     {
         "name": "Vulnerability Scan",
         "tool": "Trivy",
         "file": "trivy.yml",
-        "description": "Analyse des dépendances et de l'image Docker.",
+        "description": (
+            "Analyse des dépendances "
+            "et de l'image Docker."
+        ),
     },
     {
         "name": "Software Bill of Materials",
         "tool": "Syft SBOM",
         "file": "sbom.yml",
-        "description": "Génération de l'inventaire CycloneDX des composants.",
+        "description": (
+            "Génération de l'inventaire "
+            "CycloneDX des composants."
+        ),
     },
     {
         "name": "Security Policy Decision",
         "tool": "OPA",
         "file": "opa.yml",
-        "description": "Décision finale selon les résultats des contrôles de sécurité.",
+        "description": (
+            "Décision finale selon les résultats "
+            "des contrôles de sécurité."
+        ),
     },
 ]
 
+ALLOWED_WORKFLOW_FILES = {
+    workflow["file"]
+    for workflow in WORKFLOWS
+}
+
 _cache_lock = Lock()
+
 _cache = {
     "expires_at": 0.0,
     "data": None,
@@ -85,6 +108,16 @@ def normalize_workflow_status(
 def fetch_workflow_status(workflow: dict) -> dict:
     workflow_file = workflow["file"]
 
+    if workflow_file not in ALLOWED_WORKFLOW_FILES:
+        return {
+            **workflow,
+            "status": "UNKNOWN",
+            "conclusion": None,
+            "url": None,
+            "updated_at": None,
+            "message": "Workflow non autorisé.",
+        }
+
     url = (
         f"https://api.github.com/repos/{GITHUB_OWNER}/"
         f"{GITHUB_REPOSITORY}/actions/workflows/"
@@ -103,15 +136,15 @@ def fetch_workflow_status(workflow: dict) -> dict:
     if github_token:
         headers["Authorization"] = f"Bearer {github_token}"
 
-    request = Request(
-        url=url,
-        headers=headers,
-        method="GET",
-    )
-
     try:
-        with urlopen(request, timeout=8) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        with httpx.Client(
+            headers=headers,
+            timeout=8.0,
+            follow_redirects=False,
+        ) as client:
+            response = client.get(url)
+            response.raise_for_status()
+            payload = response.json()
 
         workflow_runs = payload.get("workflow_runs", [])
 
@@ -139,23 +172,31 @@ def fetch_workflow_status(workflow: dict) -> dict:
             "message": None,
         }
 
-    except (HTTPError, URLError, TimeoutError, OSError, ValueError) as error:
+    except (httpx.HTTPError, ValueError) as error:
         return {
             **workflow,
             "status": "UNKNOWN",
             "conclusion": None,
             "url": None,
             "updated_at": None,
-            "message": f"Résultat indisponible : {type(error).__name__}",
+            "message": (
+                "Résultat indisponible : "
+                f"{type(error).__name__}"
+            ),
         }
 
 
 def fetch_all_workflows() -> list[dict]:
     results: list[dict | None] = [None] * len(WORKFLOWS)
 
-    with ThreadPoolExecutor(max_workers=len(WORKFLOWS)) as executor:
+    with ThreadPoolExecutor(
+        max_workers=len(WORKFLOWS)
+    ) as executor:
         futures = {
-            executor.submit(fetch_workflow_status, workflow): index
+            executor.submit(
+                fetch_workflow_status,
+                workflow,
+            ): index
             for index, workflow in enumerate(WORKFLOWS)
         }
 
@@ -163,7 +204,11 @@ def fetch_all_workflows() -> list[dict]:
             index = futures[future]
             results[index] = future.result()
 
-    return [result for result in results if result is not None]
+    return [
+        result
+        for result in results
+        if result is not None
+    ]
 
 
 def get_security_dashboard_data() -> dict:
@@ -171,17 +216,34 @@ def get_security_dashboard_data() -> dict:
 
     with _cache_lock:
         cached_data = _cache["data"]
-        cache_is_valid = current_time < _cache["expires_at"]
+        cache_is_valid = (
+            current_time < _cache["expires_at"]
+        )
 
         if cached_data is not None and cache_is_valid:
             return cached_data
 
     checks = fetch_all_workflows()
 
-    passed = sum(check["status"] == "PASS" for check in checks)
-    failed = sum(check["status"] == "FAIL" for check in checks)
-    running = sum(check["status"] == "RUNNING" for check in checks)
-    unknown = sum(check["status"] == "UNKNOWN" for check in checks)
+    passed = sum(
+        check["status"] == "PASS"
+        for check in checks
+    )
+
+    failed = sum(
+        check["status"] == "FAIL"
+        for check in checks
+    )
+
+    running = sum(
+        check["status"] == "RUNNING"
+        for check in checks
+    )
+
+    unknown = sum(
+        check["status"] == "UNKNOWN"
+        for check in checks
+    )
 
     opa_check = next(
         (
@@ -205,15 +267,16 @@ def get_security_dashboard_data() -> dict:
         "passed": passed,
         "failed": failed,
         "pending": running + unknown,
-        "generated_at": datetime.now(timezone.utc).strftime(
-            "%Y-%m-%d %H:%M UTC"
-        ),
+        "generated_at": datetime.now(
+            timezone.utc
+        ).strftime("%Y-%m-%d %H:%M UTC"),
     }
 
     with _cache_lock:
         _cache["data"] = data
         _cache["expires_at"] = (
-            time.monotonic() + CACHE_DURATION_SECONDS
+            time.monotonic()
+            + CACHE_DURATION_SECONDS
         )
 
     return data
