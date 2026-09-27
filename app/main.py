@@ -1,14 +1,22 @@
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, Form, HTTPException, Query, Request, status
+from fastapi import (
+    Depends,
+    FastAPI,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from .github_security import get_security_dashboard_data
 
 from .database import Base, engine, get_db
+from .github_security import get_security_dashboard_data
 from .models import Product
 from .security import (
     get_or_create_csrf_token,
@@ -19,11 +27,16 @@ from .security import (
 
 APP_DIR = Path(__file__).resolve().parent
 
+
 app = FastAPI(
     title="SecureShop",
-    description="Application de démonstration pour le projet SecureChain DevSecOps.",
+    description=(
+        "Application de démonstration pour le projet "
+        "SecureChain DevSecOps."
+    ),
     version="0.1.0",
 )
+
 
 app.mount(
     "/static",
@@ -31,7 +44,10 @@ app.mount(
     name="static",
 )
 
-templates = Jinja2Templates(directory=APP_DIR / "templates")
+
+templates = Jinja2Templates(
+    directory=APP_DIR / "templates",
+)
 
 
 def render_template_with_csrf(
@@ -39,6 +55,8 @@ def render_template_with_csrf(
     name: str,
     context: dict,
 ):
+    """Afficher un template avec un jeton CSRF."""
+
     csrf_token = get_or_create_csrf_token(request)
 
     response = templates.TemplateResponse(
@@ -56,17 +74,28 @@ def render_template_with_csrf(
 
 @app.on_event("startup")
 def create_database() -> None:
+    """Créer les tables au démarrage de l'application."""
+
     Base.metadata.create_all(bind=engine)
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    """Endpoint utilisé pour vérifier la santé du service."""
+
     return {
         "status": "ok",
         "service": "secureshop",
     }
-@app.get("/security-dashboard", response_class=HTMLResponse)
+
+
+@app.get(
+    "/security-dashboard",
+    response_class=HTMLResponse,
+)
 def security_dashboard(request: Request):
+    """Afficher les résultats réels des workflows GitHub Actions."""
+
     dashboard_data = get_security_dashboard_data()
 
     return templates.TemplateResponse(
@@ -74,61 +103,26 @@ def security_dashboard(request: Request):
         name="security_dashboard.html",
         context=dashboard_data,
     )
-    security_checks = [
-        {
-            "name": "Application Tests",
-            "tool": "Pytest",
-            "status": "PASS",
-            "description": "Les tests fonctionnels de l'application ont réussi.",
-        },
-        {
-            "name": "Static Code Analysis",
-            "tool": "Semgrep",
-            "status": "PASS",
-            "description": "Aucune erreur de sécurité bloquante détectée.",
-        },
-        {
-            "name": "Secret Detection",
-            "tool": "Gitleaks",
-            "status": "PASS",
-            "description": "Aucun secret exposé dans le dépôt.",
-        },
-        {
-            "name": "Vulnerability Scan",
-            "tool": "Trivy",
-            "status": "PASS",
-            "description": "Aucune vulnérabilité HIGH ou CRITICAL détectée.",
-        },
-        {
-            "name": "Software Bill of Materials",
-            "tool": "Syft",
-            "status": "PASS",
-            "description": "Le SBOM CycloneDX a été généré.",
-        },
-        {
-            "name": "Container Runtime User",
-            "tool": "Docker",
-            "status": "PASS",
-            "description": "Le conteneur fonctionne avec un utilisateur non-root.",
-        },
-    ]
 
-    return templates.TemplateResponse(
-        request=request,
-        name="security_dashboard.html",
-        context={
-            "checks": security_checks,
-            "decision": "ALLOW",
-        },
-    )
 
 @app.get("/", response_class=HTMLResponse)
 def product_list(
     request: Request,
-    q: str = Query(default="", max_length=100),
+    q: str = Query(
+        default="",
+        max_length=100,
+    ),
+    notice: str = Query(
+        default="",
+        max_length=20,
+    ),
     db: Session = Depends(get_db),
 ):
-    statement = select(Product).order_by(Product.id.desc())
+    """Afficher et rechercher les produits."""
+
+    statement = select(Product).order_by(
+        Product.id.desc()
+    )
 
     if q:
         statement = statement.where(
@@ -143,12 +137,18 @@ def product_list(
         context={
             "products": products,
             "query": q,
+            "notice": notice,
         },
     )
 
 
-@app.get("/products/new", response_class=HTMLResponse)
+@app.get(
+    "/products/new",
+    response_class=HTMLResponse,
+)
 def new_product_form(request: Request):
+    """Afficher le formulaire d'ajout."""
+
     return render_template_with_csrf(
         request=request,
         name="product_form.html",
@@ -162,14 +162,25 @@ def new_product_form(request: Request):
 @app.post("/products")
 def create_product(
     request: Request,
-    name: str = Form(min_length=2, max_length=100),
-    description: str = Form(default="", max_length=500),
+    name: str = Form(
+        min_length=2,
+        max_length=100,
+    ),
+    description: str = Form(
+        default="",
+        max_length=500,
+    ),
     price: float = Form(gt=0),
     quantity: int = Form(ge=0),
-    category: str = Form(min_length=2, max_length=80),
+    category: str = Form(
+        min_length=2,
+        max_length=80,
+    ),
     csrf_token: str = Form(default=""),
     db: Session = Depends(get_db),
 ):
+    """Créer un produit."""
+
     validate_csrf_token(request, csrf_token)
 
     product = Product(
@@ -184,7 +195,7 @@ def create_product(
     db.commit()
 
     return RedirectResponse(
-        url="/",
+        url="/?notice=created",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -193,11 +204,13 @@ def get_product_or_404(
     product_id: int,
     db: Session,
 ) -> Product:
+    """Récupérer un produit ou retourner une erreur 404."""
+
     product = db.get(Product, product_id)
 
     if product is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Produit introuvable",
         )
 
@@ -213,7 +226,12 @@ def edit_product_form(
     request: Request,
     db: Session = Depends(get_db),
 ):
-    product = get_product_or_404(product_id, db)
+    """Afficher le formulaire de modification."""
+
+    product = get_product_or_404(
+        product_id,
+        db,
+    )
 
     return render_template_with_csrf(
         request=request,
@@ -229,17 +247,31 @@ def edit_product_form(
 def update_product(
     product_id: int,
     request: Request,
-    name: str = Form(min_length=2, max_length=100),
-    description: str = Form(default="", max_length=500),
+    name: str = Form(
+        min_length=2,
+        max_length=100,
+    ),
+    description: str = Form(
+        default="",
+        max_length=500,
+    ),
     price: float = Form(gt=0),
     quantity: int = Form(ge=0),
-    category: str = Form(min_length=2, max_length=80),
+    category: str = Form(
+        min_length=2,
+        max_length=80,
+    ),
     csrf_token: str = Form(default=""),
     db: Session = Depends(get_db),
 ):
+    """Modifier un produit."""
+
     validate_csrf_token(request, csrf_token)
 
-    product = get_product_or_404(product_id, db)
+    product = get_product_or_404(
+        product_id,
+        db,
+    )
 
     product.name = name.strip()
     product.description = description.strip()
@@ -250,7 +282,7 @@ def update_product(
     db.commit()
 
     return RedirectResponse(
-        url="/",
+        url="/?notice=updated",
         status_code=status.HTTP_303_SEE_OTHER,
     )
 
@@ -262,14 +294,19 @@ def delete_product(
     csrf_token: str = Form(default=""),
     db: Session = Depends(get_db),
 ):
+    """Supprimer un produit."""
+
     validate_csrf_token(request, csrf_token)
 
-    product = get_product_or_404(product_id, db)
+    product = get_product_or_404(
+        product_id,
+        db,
+    )
 
     db.delete(product)
     db.commit()
 
     return RedirectResponse(
-        url="/",
+        url="/?notice=deleted",
         status_code=status.HTTP_303_SEE_OTHER,
     )

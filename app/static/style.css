@@ -7,3 +7,49 @@ body { background: var(--surface); color: var(--navy); min-height: 100vh; }
 .price { color: var(--blue); font-size: 1.25rem; }
 .empty-state { background: #fff; border: 1px dashed #b2ccff; }
 .btn, .form-control, .card { border-radius: .75rem; }
+.app-footer {
+  margin-top: 4rem;
+  padding: 1.5rem 0;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.app-footer .container {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-footer strong {
+  display: block;
+  color: #0f172a;
+}
+
+.footer-technologies {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.footer-technologies span {
+  padding: 0.3rem 0.5rem;
+  color: #475569;
+  border-radius: 6px;
+  background: #f1f5f9;
+}
+
+.app-footer a {
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+@media (max-width: 700px) {
+  .app-footer .container {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -1,139 +1,279 @@
 {% extends "base.html" %}
 
-{% block title %}
-Produits · SecureShop
+{% block title %}Catalogue | SecureShop{% endblock %}
+
+{% block extra_head %}
+<link
+  href="{{ url_for('static', path='/catalog.css') }}"
+  rel="stylesheet"
+>
 {% endblock %}
 
 {% block content %}
+<section class="catalog-page">
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-  <div>
-    <p class="eyebrow mb-1">
-      CATALOGUE SÉCURISÉ
-    </p>
+  {% if notice %}
+  <div class="catalog-toast catalog-toast-success" data-toast>
+    <span class="toast-icon">✓</span>
 
-    <h1 class="display-6 fw-bold mb-0">
-      Gestion des produits
-    </h1>
-  </div>
+    <div>
+      {% if notice == "created" %}
+        <strong>Produit ajouté</strong>
+        <p>Le produit a été ajouté au catalogue.</p>
+      {% elif notice == "updated" %}
+        <strong>Produit modifié</strong>
+        <p>Les informations ont été mises à jour.</p>
+      {% elif notice == "deleted" %}
+        <strong>Produit supprimé</strong>
+        <p>Le produit a été retiré du catalogue.</p>
+      {% endif %}
+    </div>
 
-  <a
-    class="btn btn-primary px-4"
-    href="/products/new"
-  >
-    Ajouter un produit
-  </a>
-</div>
-
-<form
-  class="card card-body border-0 shadow-sm mb-4"
-  method="get"
-  action="/"
->
-  <div class="input-group">
-
-    <input
-      class="form-control"
-      name="q"
-      maxlength="100"
-      value="{{ query }}"
-      placeholder="Rechercher par nom"
-    >
-
-    <button
-      class="btn btn-dark"
-      type="submit"
-    >
-      Rechercher
+    <button type="button" data-close-toast aria-label="Fermer">
+      ×
     </button>
-
   </div>
-</form>
+  {% endif %}
 
-<div class="row g-4">
+  <header class="catalog-header">
+    <div>
+      <div class="catalog-eyebrow">
+        <span class="catalog-live-dot"></span>
+        CATALOGUE SÉCURISÉ
+      </div>
 
-  {% for product in products %}
+      <h1>Gestion des produits</h1>
 
-  <div class="col-md-6 col-xl-4">
-    <article class="card product-card h-100 border-0 shadow-sm">
+      <p>
+        Gérez l’inventaire SecureShop depuis une interface simple
+        et sécurisée.
+      </p>
+    </div>
 
-      <div class="card-body p-4">
+    <a href="/products/new" class="catalog-primary-button">
+      <span>＋</span>
+      Ajouter un produit
+    </a>
+  </header>
 
-        <span class="badge text-bg-light mb-3">
+  <section class="catalog-summary">
+    <div>
+      <span>Produits affichés</span>
+      <strong>{{ products|length }}</strong>
+    </div>
+
+    <div>
+      <span>Disponibles</span>
+      <strong>
+        {{ products | selectattr("quantity", "gt", 0) | list | length }}
+      </strong>
+    </div>
+
+    <div>
+      <span>Ruptures</span>
+      <strong>
+        {{ products | selectattr("quantity", "equalto", 0) | list | length }}
+      </strong>
+    </div>
+  </section>
+
+  <form action="/" method="get" class="catalog-search">
+    <div class="search-field">
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path
+          d="m21 21-4.35-4.35m2.35-5.65a8 8 0 1 1-16 0
+             8 8 0 0 1 16 0Z"
+        />
+      </svg>
+
+      <input
+        type="search"
+        name="q"
+        value="{{ query }}"
+        maxlength="100"
+        placeholder="Rechercher par nom ou catégorie..."
+        aria-label="Rechercher un produit"
+      >
+    </div>
+
+    <button type="submit">Rechercher</button>
+
+    {% if query %}
+    <a href="/" class="clear-search">Effacer</a>
+    {% endif %}
+  </form>
+
+  {% if products %}
+  <div class="product-grid">
+    {% for product in products %}
+    <article class="product-card">
+      <div class="product-visual">
+        <div class="product-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M7 14a5 5 0 1 1 3.9 1.88L9 18H7v2H5v2H2v-3.17l5.1-5.1A5 5 0 0 1 7 14Z"
+            />
+            <circle cx="14" cy="9" r="1" />
+          </svg>
+        </div>
+
+        {% if product.quantity == 0 %}
+          <span class="stock-badge stock-empty">
+            <span></span> Rupture
+          </span>
+        {% elif product.quantity <= 5 %}
+          <span class="stock-badge stock-low">
+            <span></span> Stock faible
+          </span>
+        {% else %}
+          <span class="stock-badge stock-available">
+            <span></span> Disponible
+          </span>
+        {% endif %}
+      </div>
+
+      <div class="product-content">
+        <span class="product-category">
           {{ product.category }}
         </span>
 
-        <h2 class="h4">
-          {{ product.name }}
-        </h2>
+        <h2>{{ product.name }}</h2>
 
-        <p class="text-secondary">
-          {{ product.description or "Aucune description" }}
+        <p class="product-description">
+          {{ product.description or "Aucune description disponible." }}
         </p>
 
-        <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="product-information">
+          <div>
+            <span>Prix</span>
+            <strong>{{ "%.2f"|format(product.price) }} €</strong>
+          </div>
 
-          <strong class="price">
-            {{ "%.2f"|format(product.price) }} €
-          </strong>
-
-          <span class="small text-secondary">
-            Stock : {{ product.quantity }}
-          </span>
-
+          <div class="product-stock">
+            <span>Quantité</span>
+            <strong>{{ product.quantity }}</strong>
+          </div>
         </div>
       </div>
 
-      <div class="card-footer bg-white border-0 px-4 pb-4 d-flex gap-2">
-
+      <footer class="product-actions">
         <a
-          class="btn btn-outline-primary btn-sm"
           href="/products/{{ product.id }}/edit"
+          class="product-button product-edit"
         >
           Modifier
         </a>
 
-        <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
-        <form
-          method="post"
-          action="/products/{{ product.id }}/delete"
+        <button
+          type="button"
+          class="product-button product-delete"
+          data-delete-button
+          data-product-name="{{ product.name|e }}"
+          data-delete-url="/products/{{ product.id }}/delete"
         >
-          <input
-            type="hidden"
-            name="csrf_token"
-            value="{{ csrf_token }}"
-          >
-
-          <button
-            class="btn btn-outline-danger btn-sm"
-            type="submit"
-          >
-            Supprimer
-          </button>
-        </form>
-
-      </div>
+          Supprimer
+        </button>
+      </footer>
     </article>
+    {% endfor %}
   </div>
 
   {% else %}
+  <section class="empty-catalog">
+    <div class="empty-icon">⌕</div>
 
-  <div class="col-12">
-    <div class="empty-state text-center p-5 rounded-4">
+    {% if query %}
+      <h2>Aucun résultat</h2>
+      <p>Aucun produit ne correspond à « {{ query }} ».</p>
+      <a href="/" class="catalog-primary-button">
+        Afficher tous les produits
+      </a>
+    {% else %}
+      <h2>Le catalogue est vide</h2>
+      <p>Ajoutez votre premier produit SecureShop.</p>
+      <a href="/products/new" class="catalog-primary-button">
+        Ajouter un produit
+      </a>
+    {% endif %}
+  </section>
+  {% endif %}
 
-      <h2 class="h4">
-        Aucun produit
-      </h2>
+  <dialog class="delete-dialog" id="delete-dialog">
+    <form method="dialog" class="dialog-content">
+      <div class="dialog-warning">!</div>
 
-      <p class="text-secondary mb-0">
-        Ajoute ton premier produit pour tester l'application.
+      <h2>Supprimer le produit ?</h2>
+
+      <p>
+        Vous êtes sur le point de supprimer
+        <strong id="delete-product-name"></strong>.
+        Cette action est irréversible.
       </p>
 
-    </div>
-  </div>
+      <div class="dialog-actions">
+        <button
+          type="submit"
+          value="cancel"
+          class="dialog-cancel"
+        >
+          Annuler
+        </button>
 
-  {% endfor %}
+        <button
+          type="button"
+          id="confirm-delete"
+          class="dialog-confirm"
+        >
+          Confirmer la suppression
+        </button>
+      </div>
+    </form>
+  </dialog>
 
-</div>
+  <form method="post" id="delete-form" hidden>
+    <input
+      type="hidden"
+      name="csrf_token"
+      value="{{ csrf_token }}"
+    >
+  </form>
+</section>
 
+<script>
+  const dialog = document.getElementById("delete-dialog");
+  const deleteForm = document.getElementById("delete-form");
+  const productName = document.getElementById("delete-product-name");
+  const confirmDelete = document.getElementById("confirm-delete");
+
+  document.querySelectorAll("[data-delete-button]").forEach((button) => {
+    button.addEventListener("click", () => {
+      productName.textContent = button.dataset.productName;
+      deleteForm.action = button.dataset.deleteUrl;
+
+      if (typeof dialog.showModal === "function") {
+        dialog.showModal();
+      } else if (window.confirm("Supprimer ce produit ?")) {
+        deleteForm.submit();
+      }
+    });
+  });
+
+  confirmDelete.addEventListener("click", () => {
+    confirmDelete.disabled = true;
+    confirmDelete.textContent = "Suppression...";
+    deleteForm.submit();
+  });
+
+  const toast = document.querySelector("[data-toast]");
+  const closeToast = document.querySelector("[data-close-toast]");
+
+  if (toast) {
+    const hideToast = () => {
+      toast.classList.add("toast-hidden");
+    };
+
+    closeToast?.addEventListener("click", hideToast);
+    window.setTimeout(hideToast, 4500);
+  }
+</script>
 {% endblock %}

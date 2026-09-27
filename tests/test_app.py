@@ -8,10 +8,12 @@ from app.database import Base, get_db
 from app.main import app
 
 
-# Base SQLite temporaire réservée aux tests
+# Base SQLite temporaire réservée aux tests.
 test_engine = create_engine(
     "sqlite://",
-    connect_args={"check_same_thread": False},
+    connect_args={
+        "check_same_thread": False,
+    },
     poolclass=StaticPool,
 )
 
@@ -23,6 +25,8 @@ TestingSessionLocal = sessionmaker(
 
 
 def override_get_db():
+    """Fournir une session de base de données temporaire."""
+
     db = TestingSessionLocal()
 
     try:
@@ -31,7 +35,7 @@ def override_get_db():
         db.close()
 
 
-# FastAPI utilise la base temporaire pendant les tests
+# FastAPI utilise la base temporaire pendant les tests.
 app.dependency_overrides[get_db] = override_get_db
 
 client = TestClient(app)
@@ -39,16 +43,43 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def reset_test_database():
-    # Nettoyer les cookies entre les tests
+    """Recréer une base vide avant chaque test."""
+
     client.cookies.clear()
 
-    # Recréer une base vide pour chaque test
     Base.metadata.drop_all(bind=test_engine)
     Base.metadata.create_all(bind=test_engine)
 
     yield
 
     client.cookies.clear()
+
+
+def get_csrf_token() -> str:
+    """Ouvrir la page d'accueil et récupérer le token CSRF."""
+
+    response = client.get("/")
+
+    assert response.status_code == 200
+
+    csrf_token = client.cookies.get("csrf_token")
+
+    assert csrf_token is not None
+
+    return csrf_token
+
+
+def create_test_product() -> dict[str, str]:
+    """Retourner les données d'un produit de démonstration."""
+
+    return {
+        "csrf_token": get_csrf_token(),
+        "name": "Security Key",
+        "description": "Clé matérielle de démonstration",
+        "price": "49.90",
+        "quantity": "4",
+        "category": "Sécurité",
+    }
 
 
 def test_health_endpoint():
@@ -66,39 +97,30 @@ def test_home_page_loads():
 
     assert response.status_code == 200
     assert "SecureShop" in response.text
+    assert "Gestion des produits" in response.text
 
 
 def test_create_product_redirects():
-    # Ouvrir la page pour recevoir le cookie CSRF
-    page_response = client.get("/")
-
-    assert page_response.status_code == 200
-
-    # Récupérer le token enregistré dans le cookie
-    csrf_token = client.cookies.get("csrf_token")
-
-    assert csrf_token is not None
-
-    # Envoyer le même token avec le formulaire
     response = client.post(
         "/products",
-        data={
-            "csrf_token": csrf_token,
-            "name": "Security Key",
-            "description": "Clé matérielle de démonstration",
-            "price": "49.90",
-            "quantity": "4",
-            "category": "Sécurité",
-        },
+        data=create_test_product(),
         follow_redirects=False,
     )
 
     assert response.status_code == 303
-    assert response.headers["location"] == "/"
+    assert response.headers["location"] == "/?notice=created"
+
+    notification_response = client.get(
+        response.headers["location"]
+    )
+
+    assert notification_response.status_code == 200
+    assert "Produit ajouté" in notification_response.text
+    assert "Security Key" in notification_response.text
+    assert "Stock faible" in notification_response.text
 
 
 def test_create_product_rejects_missing_csrf_token():
-    # Tentative de création sans token CSRF
     response = client.post(
         "/products",
         data={
@@ -111,5 +133,68 @@ def test_create_product_rejects_missing_csrf_token():
         follow_redirects=False,
     )
 
-    # FastAPI doit bloquer la requête
     assert response.status_code == 403
+
+
+def test_product_with_zero_quantity_is_out_of_stock():
+    product_data = create_test_product()
+    product_data["quantity"] = "0"
+
+    create_response = client.post(
+        "/products",
+        data=product_data,
+        follow_redirects=False,
+    )
+
+    assert create_response.status_code == 303
+
+    page_response = client.get("/")
+
+    assert page_response.status_code == 200
+    assert "Security Key" in page_response.text
+    assert "Rupture" in page_response.text
+
+
+def test_product_with_available_stock():
+    product_data = create_test_product()
+    product_data["quantity"] = "10"
+
+    create_response = client.post(
+        "/products",
+        data=product_data,
+        follow_redirects=False,
+    )
+
+    assert create_response.status_code == 303
+
+    page_response = client.get("/")
+
+    assert page_response.status_code == 200
+    assert "Security Key" in page_response.text
+    assert "Disponible" in page_response.text
+
+
+def test_product_search():
+    create_response = client.post(
+        "/products",
+        data=create_test_product(),
+        follow_redirects=False,
+    )
+
+    assert create_response.status_code == 303
+
+    found_response = client.get(
+        "/",
+        params={"q": "Security"},
+    )
+
+    assert found_response.status_code == 200
+    assert "Security Key" in found_response.text
+
+    missing_response = client.get(
+        "/",
+        params={"q": "Produit inexistant"},
+    )
+
+    assert missing_response.status_code == 200
+    assert "Aucun résultat" in missing_response.text
