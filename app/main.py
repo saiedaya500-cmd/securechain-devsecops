@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from .github_security import get_security_dashboard_data
 
 from .database import Base, engine, get_db
 from .models import Product
@@ -66,6 +67,13 @@ def health() -> dict[str, str]:
     }
 @app.get("/security-dashboard", response_class=HTMLResponse)
 def security_dashboard(request: Request):
+    dashboard_data = get_security_dashboard_data()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="security_dashboard.html",
+        context=dashboard_data,
+    )
     security_checks = [
         {
             "name": "Application Tests",
