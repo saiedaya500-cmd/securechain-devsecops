@@ -230,8 +230,16 @@
     </form>
   </dialog>
 
-  <form method="post" id="delete-form" hidden>
-    <input
+<!--
+  FastAPI utilise ici un token CSRF personnalisé qui est validé
+  côté serveur par validate_csrf_token().
+-->
+<form
+  method="post"
+  id="delete-form"
+  hidden
+> <!-- nosemgrep: python.django.security.django-no-csrf-token.django-no-csrf-token -->
+  <input
       type="hidden"
       name="csrf_token"
       value="{{ csrf_token }}"
