@@ -5,3 +5,4 @@ __pycache__/
 *.db
 reports/
 .env
+policy/input-ci.json
