@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+
+{% block title %}Security Dashboard | SecureShop{% endblock %}
+
+{% block content %}
+<section class="mb-5">
+  <div
+    class="p-4 p-md-5 rounded-4 text-white shadow"
+    style="background: linear-gradient(135deg, #071426, #123b5d);"
+  >
+    <div class="row align-items-center">
+      <div class="col-lg-8">
+        <p class="text-uppercase small fw-bold text-info mb-2">
+          SecureChain DevSecOps
+        </p>
+
+        <h1 class="display-5 fw-bold">
+          Security Dashboard
+        </h1>
+
+        <p class="lead mb-0">
+          Vue centralisée des contrôles de sécurité appliqués
+          à l'application SecureShop.
+        </p>
+      </div>
+
+      <div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+        <p class="mb-2">Décision finale OPA</p>
+
+        {% if decision == "ALLOW" %}
+          <span class="badge rounded-pill bg-success fs-4 px-4 py-3">
+            ✓ ALLOW
+          </span>
+        {% else %}
+          <span class="badge rounded-pill bg-danger fs-4 px-4 py-3">
+            ✕ BLOCK
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mb-4">
+  <div class="row g-4">
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <p class="text-secondary mb-2">Contrôles de sécurité</p>
+          <p class="display-6 fw-bold mb-0">{{ checks | length }}</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <p class="text-secondary mb-2">Vulnérabilités critiques</p>
+          <p class="display-6 fw-bold text-success mb-0">0</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body p-4">
+          <p class="text-secondary mb-2">Secrets détectés</p>
+          <p class="display-6 fw-bold text-success mb-0">0</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="mt-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fw-bold mb-1">Security Gates</h2>
+      <p class="text-secondary mb-0">
+        Contrôles exécutés avant l'autorisation du pipeline.
+      </p>
+    </div>
+
+    <span class="badge bg-success-subtle text-success px-3 py-2">
+      Pipeline sécurisé
+    </span>
+  </div>
+
+  <div class="row g-4">
+    {% for check in checks %}
+      <div class="col-md-6">
+        <article class="card border-0 shadow-sm h-100">
+          <div class="card-body p-4">
+            <div
+              class="d-flex justify-content-between align-items-start gap-3"
+            >
+              <div>
+                <p class="text-uppercase small fw-bold text-primary mb-2">
+                  {{ check.tool }}
+                </p>
+
+                <h3 class="h5 fw-bold">
+                  {{ check.name }}
+                </h3>
+              </div>
+
+              {% if check.status == "PASS" %}
+                <span class="badge rounded-pill bg-success px-3 py-2">
+                  ✓ PASS
+                </span>
+              {% else %}
+                <span class="badge rounded-pill bg-danger px-3 py-2">
+                  ✕ FAIL
+                </span>
+              {% endif %}
+            </div>
+
+            <p class="text-secondary mb-0 mt-3">
+              {{ check.description }}
+            </p>
+          </div>
+        </article>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="mt-5">
+  <div class="card border-0 shadow-sm">
+    <div class="card-body p-4">
+      <h2 class="h4 fw-bold mb-4">Chaîne de décision DevSecOps</h2>
+
+      <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="badge bg-primary px-3 py-2">Pytest</span>
+        <span>→</span>
+
+        <span class="badge bg-primary px-3 py-2">Semgrep</span>
+        <span>→</span>
+
+        <span class="badge bg-primary px-3 py-2">Gitleaks</span>
+        <span>→</span>
+
+        <span class="badge bg-primary px-3 py-2">Trivy</span>
+        <span>→</span>
+
+        <span class="badge bg-primary px-3 py-2">Syft SBOM</span>
+        <span>→</span>
+
+        <span class="badge bg-primary px-3 py-2">Docker</span>
+        <span>→</span>
+
+        <span class="badge bg-success px-3 py-2">OPA Decision</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="mt-4">
+  <a class="btn btn-outline-secondary" href="/">
+    ← Retour à SecureShop
+  </a>
+</div>
+{% endblock %}

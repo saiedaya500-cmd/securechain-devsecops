@@ -64,7 +64,55 @@ def health() -> dict[str, str]:
         "status": "ok",
         "service": "secureshop",
     }
+@app.get("/security-dashboard", response_class=HTMLResponse)
+def security_dashboard(request: Request):
+    security_checks = [
+        {
+            "name": "Application Tests",
+            "tool": "Pytest",
+            "status": "PASS",
+            "description": "Les tests fonctionnels de l'application ont réussi.",
+        },
+        {
+            "name": "Static Code Analysis",
+            "tool": "Semgrep",
+            "status": "PASS",
+            "description": "Aucune erreur de sécurité bloquante détectée.",
+        },
+        {
+            "name": "Secret Detection",
+            "tool": "Gitleaks",
+            "status": "PASS",
+            "description": "Aucun secret exposé dans le dépôt.",
+        },
+        {
+            "name": "Vulnerability Scan",
+            "tool": "Trivy",
+            "status": "PASS",
+            "description": "Aucune vulnérabilité HIGH ou CRITICAL détectée.",
+        },
+        {
+            "name": "Software Bill of Materials",
+            "tool": "Syft",
+            "status": "PASS",
+            "description": "Le SBOM CycloneDX a été généré.",
+        },
+        {
+            "name": "Container Runtime User",
+            "tool": "Docker",
+            "status": "PASS",
+            "description": "Le conteneur fonctionne avec un utilisateur non-root.",
+        },
+    ]
 
+    return templates.TemplateResponse(
+        request=request,
+        name="security_dashboard.html",
+        context={
+            "checks": security_checks,
+            "decision": "ALLOW",
+        },
+    )
 
 @app.get("/", response_class=HTMLResponse)
 def product_list(
