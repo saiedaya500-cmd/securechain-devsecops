@@ -12,7 +12,7 @@ from fastapi import (
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from .database import Base, engine, get_db
@@ -125,10 +125,14 @@ def product_list(
     )
 
     if q:
-        statement = statement.where(
-            Product.name.ilike(f"%{q}%")
-        )
+     search_term = f"%{q.strip()}%"
 
+     statement = statement.where(
+        or_(
+            Product.name.ilike(search_term),
+            Product.category.ilike(search_term),
+        )
+    )
     products = db.scalars(statement).all()
 
     return render_template_with_csrf(
