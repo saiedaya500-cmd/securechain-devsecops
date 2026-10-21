@@ -93,10 +93,15 @@ def health() -> dict[str, str]:
     "/security-dashboard",
     response_class=HTMLResponse,
 )
-def security_dashboard(request: Request):
+def security_dashboard(
+    request: Request,
+    refresh: bool = Query(default=False),
+):
     """Afficher les résultats réels des workflows GitHub Actions."""
 
-    dashboard_data = get_security_dashboard_data()
+    dashboard_data = get_security_dashboard_data(
+        force_refresh=refresh,
+    )
 
     return templates.TemplateResponse(
         request=request,
@@ -123,16 +128,16 @@ def product_list(
     statement = select(Product).order_by(
         Product.id.desc()
     )
-
     if q:
-     search_term = f"%{q.strip()}%"
+        search_term = f"%{q.strip()}%"
 
-     statement = statement.where(
-        or_(
-            Product.name.ilike(search_term),
-            Product.category.ilike(search_term),
+        statement = statement.where(
+            or_(
+                Product.name.ilike(search_term),
+                Product.category.ilike(search_term),
+            )
         )
-    )
+
     products = db.scalars(statement).all()
 
     return render_template_with_csrf(
