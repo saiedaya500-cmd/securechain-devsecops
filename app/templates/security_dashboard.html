@@ -4,7 +4,7 @@
 
 {% block extra_head %}
 <link
-  href="{{ url_for('static', path='/security_dashboard.css') }}"
+  href="{{ url_for('static', path='/security_dashboard.css') }}?v=3"
   rel="stylesheet"
 >
 {% endblock %}
@@ -28,16 +28,24 @@
 
       <div class="hero-metadata">
         <span class="metadata-badge">
-          Repository : securechain-devsecops
+          Repository : {{ repository }}
         </span>
 
         <span class="metadata-badge">
-          Branch : main
+          Branch : {{ branch }}
         </span>
 
-        <span class="metadata-badge">
-          GitHub Actions
-        </span>
+        {% if latest_commit.short_sha %}
+        <a
+          class="metadata-badge metadata-link"
+          href="{{ latest_commit.url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="{{ latest_commit.message or 'Dernier commit analysé' }}"
+        >
+          Commit : {{ latest_commit.short_sha }}
+        </a>
+        {% endif %}
       </div>
 
       <p class="last-update">
@@ -47,7 +55,9 @@
     </div>
 
     <div class="decision-panel decision-{{ decision|lower }}">
-      <span class="decision-label">Décision de sécurité OPA</span>
+      <span class="decision-label">
+        Décision globale de sécurité
+      </span>
 
       <div class="decision-value">
         {% if decision == "ALLOW" %}
@@ -65,9 +75,10 @@
         {% if decision == "ALLOW" %}
           Tous les contrôles requis sont validés.
         {% elif decision == "BLOCK" %}
-          Une ou plusieurs règles de sécurité ont échoué.
+          La pipeline est bloquée : un contrôle de sécurité
+          nécessite une intervention.
         {% else %}
-          La décision de sécurité n’est pas disponible.
+          Certains contrôles sont en cours ou indisponibles.
         {% endif %}
       </p>
     </div>
@@ -81,13 +92,24 @@
     </div>
 
     <div class="toolbar-actions">
-      <button
+      <a
+        id="refresh-dashboard"
         class="dashboard-button dashboard-button-secondary"
-        type="button"
-        onclick="window.location.reload()"
+        href="/security-dashboard?refresh=true"
       >
-        ↻ Actualiser
-      </button>
+        <span data-refresh-icon aria-hidden="true">↻</span>
+        <span data-refresh-label>Actualiser</span>
+      </a>
+
+      <a
+        class="dashboard-button dashboard-button-secondary"
+        href="https://github.com/saiedaya500-cmd/securechain-devsecops"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Voir le repository
+        <span aria-hidden="true">↗</span>
+      </a>
 
       <a
         class="dashboard-button dashboard-button-primary"
@@ -102,14 +124,21 @@
   </div>
 
   <!-- Metrics -->
-  <section class="metric-grid" aria-label="Résumé des contrôles">
+  <section
+    class="metric-grid"
+    aria-label="Résumé des contrôles"
+  >
     <article class="metric-card metric-total">
       <div class="metric-icon">SC</div>
 
       <div>
         <span class="metric-label">Contrôles</span>
-        <strong class="metric-value">{{ checks|length }}</strong>
-        <span class="metric-caption">Workflows surveillés</span>
+        <strong class="metric-value">
+          {{ checks|length }}
+        </strong>
+        <span class="metric-caption">
+          Workflows surveillés
+        </span>
       </div>
     </article>
 
@@ -119,7 +148,9 @@
       <div>
         <span class="metric-label">Réussis</span>
         <strong class="metric-value">{{ passed }}</strong>
-        <span class="metric-caption">Contrôles validés</span>
+        <span class="metric-caption">
+          Contrôles validés
+        </span>
       </div>
     </article>
 
@@ -129,7 +160,9 @@
       <div>
         <span class="metric-label">Échoués</span>
         <strong class="metric-value">{{ failed }}</strong>
-        <span class="metric-caption">Action nécessaire</span>
+        <span class="metric-caption">
+          Action nécessaire
+        </span>
       </div>
     </article>
 
@@ -139,7 +172,9 @@
       <div>
         <span class="metric-label">En attente</span>
         <strong class="metric-value">{{ pending }}</strong>
-        <span class="metric-caption">En cours ou indisponibles</span>
+        <span class="metric-caption">
+          En cours ou indisponibles
+        </span>
       </div>
     </article>
   </section>
@@ -150,7 +185,11 @@
       <div>
         <p class="section-eyebrow">PIPELINE CONTROLS</p>
         <h2>GitHub Security Workflows</h2>
-        <p>Dernière exécution détectée sur la branche principale.</p>
+
+        <p>
+          Dernière exécution détectée sur la branche
+          <strong>{{ branch }}</strong>.
+        </p>
       </div>
 
       <span class="workflow-count">
@@ -160,7 +199,9 @@
 
     <div class="workflow-grid">
       {% for check in checks %}
-      <article class="workflow-card workflow-{{ check.status|lower }}">
+      <article
+        class="workflow-card workflow-{{ check.status|lower }}"
+      >
         <div class="workflow-card-header">
           <div class="workflow-identity">
             <div class="workflow-logo">
@@ -182,12 +223,17 @@
             </div>
 
             <div>
-              <span class="workflow-tool">{{ check.tool }}</span>
+              <span class="workflow-tool">
+                {{ check.tool }}
+              </span>
+
               <h3>{{ check.name }}</h3>
             </div>
           </div>
 
-          <span class="status-pill status-{{ check.status|lower }}">
+          <span
+            class="status-pill status-{{ check.status|lower }}"
+          >
             <span class="status-dot"></span>
             {{ check.status }}
           </span>
@@ -207,6 +253,7 @@
           <div class="workflow-time">
             {% if check.updated_at %}
               Dernière exécution :
+
               <time
                 datetime="{{ check.updated_at }}"
                 data-local-time
@@ -241,34 +288,79 @@
 
     <div>
       <strong>Security gate automatisée</strong>
+
       <p>
-        Pytest, Semgrep, Gitleaks, Trivy, Syft et OPA protègent
-        chaque modification avant son intégration.
+        Pytest, Semgrep, Gitleaks, Trivy, Syft et OPA
+        protègent chaque modification avant son intégration.
       </p>
     </div>
 
     <span class="architecture-status">
-      Pipeline opérationnelle
+      {% if decision == "ALLOW" %}
+        Pipeline opérationnelle
+      {% elif decision == "BLOCK" %}
+        Pipeline bloquée
+      {% else %}
+        Vérification en cours
+      {% endif %}
     </span>
   </section>
 
+  <!-- Footer -->
   <footer class="dashboard-footer">
     <span>SecureChain DevSecOps Platform</span>
-    <span>Données fournies par l’API GitHub Actions</span>
+
+    <span>
+      Données fournies par l’API GitHub Actions
+    </span>
   </footer>
 </section>
 
 <script>
-  document.querySelectorAll("[data-local-time]").forEach((element) => {
-    const value = element.getAttribute("datetime");
-    const date = new Date(value);
+  document
+    .querySelectorAll("[data-local-time]")
+    .forEach((element) => {
+      const value = element.getAttribute("datetime");
+      const date = new Date(value);
 
-    if (!Number.isNaN(date.getTime())) {
-      element.textContent = new Intl.DateTimeFormat("fr-FR", {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }).format(date);
+      if (!Number.isNaN(date.getTime())) {
+        element.textContent = new Intl.DateTimeFormat(
+          "fr-FR",
+          {
+            dateStyle: "medium",
+            timeStyle: "short"
+          }
+        ).format(date);
+      }
+    });
+
+  const refreshDashboard = document.getElementById(
+    "refresh-dashboard"
+  );
+
+  refreshDashboard?.addEventListener("click", () => {
+    const label = refreshDashboard.querySelector(
+      "[data-refresh-label]"
+    );
+
+    refreshDashboard.classList.add("is-loading");
+    refreshDashboard.setAttribute("aria-busy", "true");
+
+    if (label) {
+      label.textContent = "Actualisation...";
     }
   });
+
+  const currentUrl = new URL(window.location.href);
+
+  if (currentUrl.searchParams.has("refresh")) {
+    currentUrl.searchParams.delete("refresh");
+
+    window.history.replaceState(
+      {},
+      "",
+      `${currentUrl.pathname}${currentUrl.search}`
+    );
+  }
 </script>
 {% endblock %}

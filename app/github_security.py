@@ -105,18 +105,30 @@ def normalize_workflow_status(
     return "UNKNOWN"
 
 
+def empty_workflow_result(
+    workflow: dict,
+    message: str,
+) -> dict:
+    return {
+        **workflow,
+        "status": "UNKNOWN",
+        "conclusion": None,
+        "url": None,
+        "updated_at": None,
+        "head_sha": None,
+        "commit_message": None,
+        "message": message,
+    }
+
+
 def fetch_workflow_status(workflow: dict) -> dict:
     workflow_file = workflow["file"]
 
     if workflow_file not in ALLOWED_WORKFLOW_FILES:
-        return {
-            **workflow,
-            "status": "UNKNOWN",
-            "conclusion": None,
-            "url": None,
-            "updated_at": None,
-            "message": "Workflow non autorisé.",
-        }
+        return empty_workflow_result(
+            workflow,
+            "Workflow non autorisé.",
+        )
 
     url = (
         f"https://api.github.com/repos/{GITHUB_OWNER}/"
@@ -149,16 +161,13 @@ def fetch_workflow_status(workflow: dict) -> dict:
         workflow_runs = payload.get("workflow_runs", [])
 
         if not workflow_runs:
-            return {
-                **workflow,
-                "status": "UNKNOWN",
-                "conclusion": None,
-                "url": None,
-                "updated_at": None,
-                "message": "Aucune exécution trouvée.",
-            }
+            return empty_workflow_result(
+                workflow,
+                "Aucune exécution trouvée.",
+            )
 
         latest_run = workflow_runs[0]
+        head_commit = latest_run.get("head_commit") or {}
 
         return {
             **workflow,
@@ -169,21 +178,19 @@ def fetch_workflow_status(workflow: dict) -> dict:
             "conclusion": latest_run.get("conclusion"),
             "url": latest_run.get("html_url"),
             "updated_at": latest_run.get("updated_at"),
+            "head_sha": latest_run.get("head_sha"),
+            "commit_message": head_commit.get("message"),
             "message": None,
         }
 
     except (httpx.HTTPError, ValueError) as error:
-        return {
-            **workflow,
-            "status": "UNKNOWN",
-            "conclusion": None,
-            "url": None,
-            "updated_at": None,
-            "message": (
+        return empty_workflow_result(
+            workflow,
+            (
                 "Résultat indisponible : "
                 f"{type(error).__name__}"
             ),
-        }
+        )
 
 
 def fetch_all_workflows() -> list[dict]:
@@ -211,7 +218,42 @@ def fetch_all_workflows() -> list[dict]:
     ]
 
 
-def get_security_dashboard_data() -> dict:
+def get_latest_commit(checks: list[dict]) -> dict:
+    checks_with_commit = [
+        check
+        for check in checks
+        if check.get("head_sha")
+    ]
+
+    if not checks_with_commit:
+        return {
+            "sha": None,
+            "short_sha": None,
+            "message": None,
+            "url": None,
+        }
+
+    latest_check = max(
+        checks_with_commit,
+        key=lambda check: check.get("updated_at") or "",
+    )
+
+    commit_sha = latest_check["head_sha"]
+
+    return {
+        "sha": commit_sha,
+        "short_sha": commit_sha[:7],
+        "message": latest_check.get("commit_message"),
+        "url": (
+            f"https://github.com/{GITHUB_OWNER}/"
+            f"{GITHUB_REPOSITORY}/commit/{commit_sha}"
+        ),
+    }
+
+
+def get_security_dashboard_data(
+    force_refresh: bool = False,
+) -> dict:
     current_time = time.monotonic()
 
     with _cache_lock:
@@ -220,7 +262,11 @@ def get_security_dashboard_data() -> dict:
             current_time < _cache["expires_at"]
         )
 
-        if cached_data is not None and cache_is_valid:
+        if (
+            not force_refresh
+            and cached_data is not None
+            and cache_is_valid
+        ):
             return cached_data
 
     checks = fetch_all_workflows()
@@ -245,28 +291,29 @@ def get_security_dashboard_data() -> dict:
         for check in checks
     )
 
-    opa_check = next(
-        (
-            check
-            for check in checks
-            if check["file"] == "opa.yml"
-        ),
-        None,
-    )
+    pending = running + unknown
+    total_checks = len(checks)
 
-    if opa_check and opa_check["status"] == "PASS":
-        decision = "ALLOW"
-    elif opa_check and opa_check["status"] == "FAIL":
+    if failed > 0:
         decision = "BLOCK"
+    elif pending > 0:
+        decision = "UNKNOWN"
+    elif total_checks > 0 and passed == total_checks:
+        decision = "ALLOW"
     else:
         decision = "UNKNOWN"
+
+    latest_commit = get_latest_commit(checks)
 
     data = {
         "checks": checks,
         "decision": decision,
         "passed": passed,
         "failed": failed,
-        "pending": running + unknown,
+        "pending": pending,
+        "repository": GITHUB_REPOSITORY,
+        "branch": GITHUB_BRANCH,
+        "latest_commit": latest_commit,
         "generated_at": datetime.now(
             timezone.utc
         ).strftime("%Y-%m-%d %H:%M UTC"),
